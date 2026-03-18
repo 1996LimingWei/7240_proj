@@ -80,39 +80,142 @@ def evaluate_algorithm_with_surprise(algo_name, algo, trainset, testset, k_value
     return results
 
 
+def evaluate_custom_algorithm_with_metrics(algo_name, algo_func, train_ratings, test_ratings, k_values=[5, 10, 20]):
+    """Evaluate custom algorithm with full offline metrics."""
+    print(f"\nEvaluating {algo_name}...")
+    start_time = time.time()
+
+    # Get recommendations for all users in test set
+    from collections import defaultdict
+
+    # Group test ratings by user
+    user_test_data = defaultdict(list)
+    for _, row in test_ratings.iterrows():
+        user_test_data[row['userId']].append({
+            'movieId': row['movieId'],
+            'rating': row['rating']
+        })
+
+    # Generate recommendations for each user
+    all_recommendations = {}
+    all_predictions = []
+
+    for user_id, user_items in user_test_data.items():
+        # Create pseudo user ratings in expected format: "userId|movieId|rating"
+        # Note: movieId must be int, but rating stays float
+        try:
+            user_rates = []
+            for item in user_items[:10]:  # Use first 10 as history
+                # Convert to int (handles both int and float)
+                uid = int(float(user_id))
+                mid = int(float(item['movieId']))  # Convert movieId to int
+                rating = item['rating']  # Keep rating as-is (float)
+                user_rates.append(f"{uid}|{mid}|{rating}")
+
+            # Get recommendations
+            recs, _ = algo_func(user_rates, k=20)
+            all_recommendations[int(float(user_id))] = list(recs)
+        except Exception as e:
+            print(f"  Warning: Error for user {user_id}: {e}")
+            continue
+
+    elapsed_time = time.time() - start_time
+
+    # Compute ranking metrics only if we have recommendations
+    if len(all_recommendations) > 0:
+        # Build test ratings DataFrame from users we actually generated recs for
+        test_data_for_recs = []
+        for uid in all_recommendations.keys():
+            for item in user_test_data[uid]:
+                test_data_for_recs.append({
+                    'userId': uid,
+                    'movieId': int(item['movieId']),
+                    'rating': item['rating']
+                })
+
+        test_df = pd.DataFrame(test_data_for_recs)
+
+        ranking_metrics = evaluate_ranking_metrics(
+            test_df,
+            all_recommendations,
+            k_values
+        )
+    else:
+        # No recommendations generated, return empty metrics
+        ranking_metrics = {k: 0.0 for k in ['Precision@5', 'Recall@5', 'nDCG@5',
+                                            'Precision@10', 'Recall@10', 'nDCG@10',
+                                            'Precision@20', 'Recall@20', 'nDCG@20']}
+
+    results = {
+        'Algorithm': algo_name,
+        'Time (s)': round(elapsed_time, 2),
+        'MAE': 'N/A',  # Custom algos don't predict ratings directly
+        'RMSE': 'N/A',
+        **ranking_metrics
+    }
+
+    print(f"  Time: {elapsed_time:.2f}s")
+    print(f"  nDCG@10: {results.get('nDCG@10', 'N/A')}")
+
+    return results
+
+
 def evaluate_custom_algorithms():
     """Evaluate custom implementations (TF-IDF and Hybrid)."""
     print("\n" + "="*80)
     print("Evaluating Custom Algorithms")
     print("="*80)
 
-    # Generate sample user
-    user_rates, user_likes = generate_user_ratings_sample(n_ratings=20)
+    # Prepare data for proper evaluation
+    reader = Reader(rating_scale=(1, 5))
+    data = Dataset.load_from_df(rates[['userId', 'movieId', 'rating']], reader)
+    trainset, testset = train_test_split(data, test_size=0.2, random_state=42)
+
+    # Convert testset to DataFrame for evaluation
+    test_data = []
+    for uid, iid, r_ui in testset:
+        test_data.append({'userId': uid, 'movieId': iid, 'rating': r_ui})
+    test_ratings = pd.DataFrame(test_data)
 
     results = []
 
+    # Define algorithm functions with proper signatures
+    def tfidf_func(user_rates, k=20):
+        # Extract movie IDs from user_rates (format: "userId|movieId|rating")
+        # TF-IDF expects list of movie ID strings as user_likes
+        user_likes = [str(int(float(r.split('|')[1])))
+                      for r in user_rates] if user_rates else []
+        return getTfidfRecommendations(user_likes, k=k)
+
+    def hybrid_func(user_rates, k=20):
+        # Hybrid expects both user_rates (full format) and user_likes (list of strings)
+        user_likes = [str(int(float(r.split('|')[1])))
+                      for r in user_rates] if user_rates else []
+        return getOptimizedHybridRecommendations(user_rates, user_likes, k=k)
+
     # Test each algorithm
     algorithms = [
-        ('TF-IDF Content-Based',
-         lambda: getTfidfRecommendations([str(m) for m in user_likes], k=20)),
+        ('TF-IDF Content-Based', tfidf_func),
+        ('Optimized Hybrid (50% SVD + 30% User-CF + 20% TF-IDF)', hybrid_func),
     ]
 
     for algo_name, algo_func in algorithms:
-        print(f"\nTesting {algo_name}...")
-        start_time = time.time()
-
-        recs, message = algo_func()
-        elapsed_time = time.time() - start_time
-
-        print(
-            f"  Generated {len(recs)} recommendations in {elapsed_time:.2f}s")
-        print(f"  Message: {message}")
-
-        results.append({
-            'Algorithm': algo_name,
-            'Time (s)': round(elapsed_time, 2),
-            'Recommendations': len(recs)
-        })
+        try:
+            result = evaluate_custom_algorithm_with_metrics(
+                algo_name, algo_func, trainset, test_ratings
+            )
+            results.append(result)
+        except Exception as e:
+            print(f"  Error evaluating {algo_name}: {e}")
+            results.append({
+                'Algorithm': algo_name,
+                'Time (s)': 'N/A',
+                'MAE': 'N/A',
+                'RMSE': 'N/A',
+                'Precision@10': 'N/A',
+                'Recall@10': 'N/A',
+                'nDCG@10': 'N/A'
+            })
 
     return results
 
@@ -167,12 +270,83 @@ def compare_all_methods():
     print("SUMMARY RESULTS")
     print("="*80)
 
-    if surprise_results:
+    # Combine all results for unified display
+    if surprise_results and custom_results:
+        # Create unified dataframe (custom algos will have N/A for MAE/RMSE)
+        all_for_display = surprise_results + custom_results
+        df = pd.DataFrame(all_for_display)
+
+        print("\n" + "="*80)
+        print("COMPLETE EVALUATION RESULTS")
+        print("="*80)
+        print("\nAll Algorithms Comparison:")
+        # Reorder columns for better display
+        cols = ['Algorithm', 'Time (s)', 'MAE', 'RMSE',
+                'Precision@10', 'Recall@10', 'nDCG@10']
+        available_cols = [c for c in cols if c in df.columns]
+        print(df[available_cols].to_string(index=False))
+
+        print("\n" + "="*80)
+        print("KEY INSIGHTS")
+        print("="*80)
+
+        # Find best in each category
+        if 'MAE' in df.columns and 'RMSE' in df.columns:
+            # Filter only surprise-based for MAE/RMSE comparison
+            surprise_df = pd.DataFrame(surprise_results)
+            if len(surprise_df) > 0:
+                best_mae = surprise_df.loc[surprise_df['MAE'].idxmin()]
+                best_rmse = surprise_df.loc[surprise_df['RMSE'].idxmin()]
+                print(
+                    f"\n✅ Best Accuracy (MAE): {best_mae['Algorithm']} ({best_mae['MAE']})")
+                print(
+                    f"✅ Best Accuracy (RMSE): {best_rmse['Algorithm']} ({best_rmse['RMSE']})")
+
+        if 'nDCG@10' in df.columns:
+            # Get all with valid nDCG@10
+            df_valid_ndcg = df[df['nDCG@10'] != 'N/A']
+            if len(df_valid_ndcg) > 0:
+                # Convert to numeric for comparison
+                df_valid_ndcg = df_valid_ndcg.copy()
+                df_valid_ndcg['nDCG@10_numeric'] = pd.to_numeric(
+                    df_valid_ndcg['nDCG@10'], errors='coerce')
+                best_ndcg = df_valid_ndcg.loc[df_valid_ndcg['nDCG@10_numeric'].idxmax()]
+                print(
+                    f"✅ Best Ranking (nDCG@10): {best_ndcg['Algorithm']} ({best_ndcg['nDCG@10']})")
+
+        if 'Time (s)' in df.columns:
+            df_valid_time = df[df['Time (s)'] != 'N/A']
+            if len(df_valid_time) > 0:
+                df_valid_time = df_valid_time.copy()
+                df_valid_time['Time_numeric'] = pd.to_numeric(
+                    df_valid_time['Time (s)'], errors='coerce')
+                fastest = df_valid_time.loc[df_valid_time['Time_numeric'].idxmin(
+                )]
+                print(
+                    f"⚡ Fastest Algorithm: {fastest['Algorithm']} ({fastest['Time (s)']}s)")
+
+        print("\n" + "="*80)
+        print("HYBRID MODEL RATIONALE")
+        print("="*80)
+        print("""
+The Hybrid model combines the top 3 algorithms:
+- 50% SVD: Best accuracy (lowest RMSE/MAE)
+- 30% User-CF: Best ranking metrics (nDCG)
+- 20% TF-IDF: Diversity + cold-start solution
+
+Expected benefits:
+✓ Balanced performance across all metrics
+✓ Robust to different data scenarios
+✓ Solves cold-start problem (new users/movies)
+✓ Leverages multiple data sources (ratings + content)
+        """)
+
+    elif surprise_results:
         df = pd.DataFrame(surprise_results)
         print("\nSurprise-based Algorithms:")
         print(df.to_string(index=False))
 
-    if custom_results:
+    elif custom_results:
         df = pd.DataFrame(custom_results)
         print("\nCustom Algorithms:")
         print(df.to_string(index=False))
