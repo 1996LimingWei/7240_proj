@@ -42,12 +42,30 @@
                     </div>
                     <div class="navbar-end">
                         <div class="navbar-item">
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <div class="select is-small">
+                                        <select id="algorithmSelect" onchange="changeAlgorithm(this.value)">
+                                            <option value="hybrid" {% if algorithm == 'hybrid' %}selected{% endif %}>Hybrid (Optimized)</option>
+                                            <option value="svd" {% if algorithm == 'svd' %}selected{% endif %}>SVD Matrix Factorization</option>
+                                            <option value="user_cf" {% if algorithm == 'user_cf' %}selected{% endif %}>User-Based CF</option>
+                                            <option value="tfidf" {% if algorithm == 'tfidf' %}selected{% endif %}>TF-IDF Content-Based</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-small is-info" onclick="showAlgorithmInfo()">
+                                        <span class="icon is-small"><i class="fa fa-info-circle"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="navbar-item">
                             <div class="buttons">
-                                <button class="button is-danger" @click="cleanAll">
+                                <button class="button is-danger is-small" @click="cleanAll">
                                     <strong>Clean All</strong>
                                 </button>
-
-                                <button class="button is-link" @click="showGenres = true">
+                                <button class="button is-link is-small" @click="showGenres = true">
                                     <strong>Genres</strong>
                                 </button>
                             </div>
@@ -61,10 +79,20 @@
             {% if recommendations %}
             <section class="section pt-2 pb-0">
                 <div class="container">
-                    <p class="is-size-4">
-                        Recommended
-                    </p>
-                    <p class="mb-3">{{ recommendations_message }}</p>
+                    <div class="level">
+                        <div class="level-left">
+                            <div>
+                                <p class="is-size-4">Recommended</p>
+                                <p class="mb-3"><span class="tag is-info">{{ recommendations_message }}</span></p>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <button class="button is-small" onclick="showWhyRecommended()">
+                                <span class="icon"><i class="fa fa-question-circle"></i></span>
+                                <span>Why these?</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="columns is-mobile is-multiline">
                         {% for movie in recommendations %}
@@ -252,6 +280,95 @@
             </div>
         </div>
 
+        <!-- Algorithm Info Modal -->
+        <div id="algorithmInfoModal" class="modal">
+            <div class="modal-background" onclick="closeAlgorithmInfo()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Recommendation Algorithms</p>
+                    <button class="delete" onclick="closeAlgorithmInfo()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="content">
+                        <h5>Available Algorithms (Optimized)</h5>
+                        <p><em>Based on offline evaluation (MAE, RMSE, Precision@K, nDCG)</em></p>
+                        <ul>
+                            <li><strong>Hybrid (Optimized):</strong> Best overall - combines SVD (50%) + User-CF (30%) + TF-IDF (20%)</li>
+                            <li><strong>SVD Matrix Factorization:</strong> Best accuracy (MAE: 0.68, RMSE: 0.88) - latent factor model</li>
+                            <li><strong>User-Based CF:</strong> Good ranking metrics - finds similar users using Pearson correlation</li>
+                            <li><strong>TF-IDF Content-Based:</strong> Fastest (0.01s) - uses movie overviews for content similarity</li>
+                        </ul>
+                        <h5>Evaluation Results Summary</h5>
+                        <ul>
+                            <li>SVD: MAE=0.68, RMSE=0.88, Precision@10=0.50 (Best Accuracy)</li>
+                            <li>User-CF: MAE=0.70, RMSE=0.91, nDCG@10=0.76 (Best Ranking)</li>
+                            <li>TF-IDF: Fastest, solves cold-start, leverages overviews</li>
+                        </ul>
+                        <h5>Course Alignment</h5>
+                        <p>These algorithms cover key concepts from the course:</p>
+                        <ul>
+                            <li>k-NN Collaborative Filtering (User-based)</li>
+                            <li>Matrix Factorization (SVD)</li>
+                            <li>Content-Based Filtering with TF-IDF</li>
+                            <li>Hybrid Recommendation Systems</li>
+                            <li>Offline Evaluation Metrics (MAE, RMSE, Precision@K, Recall@K, nDCG)</li>
+                        </ul>
+                        <p><small><em>Note: Item-Based CF and Time-Decay were removed after evaluation showed lower performance.</em></small></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Why Recommended Modal -->
+        <div id="whyRecommendedModal" class="modal">
+            <div class="modal-background" onclick="closeWhyRecommended()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Why These Recommendations?</p>
+                    <button class="delete" onclick="closeWhyRecommended()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="content">
+                        <p>Current algorithm: <strong>{{ algorithm.replace('_', ' ').title() }}</strong></p>
+                        <hr>
+                        {% if algorithm == 'hybrid' %}
+                        <p><strong>Optimized Hybrid Model</strong> (Based on Evaluation Results):</p>
+                        <ul>
+                            <li><strong>50% SVD</strong> - Best accuracy (MAE: 0.68, RMSE: 0.88)</li>
+                            <li><strong>30% User-Based CF</strong> - Best ranking metrics (nDCG@10: 0.76)</li>
+                            <li><strong>20% TF-IDF</strong> - Fastest, uses movie overviews</li>
+                        </ul>
+                        <p><em>This combination was selected after testing all algorithms on MAE, RMSE, Precision@K, Recall@K, and nDCG metrics.</em></p>
+                        {% elif algorithm == 'user_cf' %}
+                        <p><strong>User-Based Collaborative Filtering</strong> (k-NN with Pearson):</p>
+                        <ol>
+                            <li>Finding users with similar rating patterns (Pearson correlation)</li>
+                            <li>Identifying movies those similar users rated highly</li>
+                            <li>Recommending those movies to you</li>
+                        </ol>
+                        <p><em>Evaluation: MAE=0.70, RMSE=0.91, nDCG@10=0.76</em></p>
+                        {% elif algorithm == 'svd' %}
+                        <p><strong>SVD Matrix Factorization</strong> (Best Accuracy):</p>
+                        <ol>
+                            <li>Learning latent factors for users and movies</li>
+                            <li>Decomposing the rating matrix into lower-dimensional representations</li>
+                            <li>Predicting ratings as dot product of user and item factors</li>
+                        </ol>
+                        <p><em>Evaluation: MAE=0.68, RMSE=0.88, Precision@10=0.50 (Best Overall)</em></p>
+                        {% elif algorithm == 'tfidf' %}
+                        <p><strong>TF-IDF Content-Based</strong> (Fastest & Cold-Start Solution):</p>
+                        <ol>
+                            <li>Extracting TF-IDF features from movie overviews</li>
+                            <li>Calculating cosine similarity between movie contents</li>
+                            <li>Recommending movies most similar to ones you liked</li>
+                        </ol>
+                        <p><em>Speed: 0.01s - Solves cold-start by using movie content</em></p>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </div>
+
         <footer class="footer mt-6">
             <div class="container is-max-widescreen">
                 <div class="content has-text-centered">
@@ -401,6 +518,37 @@
     // Reset the Vue delimiters and Mount it
     app.config.compilerOptions.delimiters = ['[[', ']]']
     app.mount('#app')
+
+    // Algorithm selection and modal functions
+    window.changeAlgorithm = function(algorithm) {
+        const url = new URL(window.location);
+        url.searchParams.set('algorithm', algorithm);
+        window.location.href = url.toString();
+    }
+
+    window.showAlgorithmInfo = function() {
+        document.getElementById('algorithmInfoModal').classList.add('is-active');
+    }
+
+    window.closeAlgorithmInfo = function() {
+        document.getElementById('algorithmInfoModal').classList.remove('is-active');
+    }
+
+    window.showWhyRecommended = function() {
+        document.getElementById('whyRecommendedModal').classList.add('is-active');
+    }
+
+    window.closeWhyRecommended = function() {
+        document.getElementById('whyRecommendedModal').classList.remove('is-active');
+    }
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            window.closeAlgorithmInfo();
+            window.closeWhyRecommended();
+        }
+    });
 
 </script>
 <style>
