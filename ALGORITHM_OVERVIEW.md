@@ -1,7 +1,4 @@
-# Movie Recommender System - Algorithm Overview
-
-## Project Requirements
-Enhance recommendation methods by leveraging additional dataset information (timestamps, movie overviews) using course-aligned algorithms.
+# Movie Recommender System
 
 ---
 

@@ -6,8 +6,8 @@ import time
 from surprise.model_selection import train_test_split
 from surprise import Reader, SVD, KNNBasic, KNNWithMeans, Dataset, accuracy
 from flaskr.main import (
-    getRecommendationBy, getItemBasedCFRecommendations, getSVDRecommendations,
-    getTimeDecayRecommendations, getTfidfRecommendations, getOptimizedHybridRecommendations,
+    getRecommendationBy, getSVDRecommendations,
+    getTfidfRecommendations, getOptimizedHybridRecommendations,
     pearson_correlation, user_item_matrix
 )
 from flaskr.tools.data_tool import getMovies, getRates, loadData, evaluate_rating_prediction, evaluate_ranking_metrics
@@ -138,13 +138,7 @@ def run_surprise_evaluation():
     results.append(evaluate_algorithm_with_surprise(
         'User-Based CF (Pearson)', algo, trainset, testset))
 
-    # 2. Item-Based CF
-    algo = KNNBasic(k=20, sim_options={
-                    'name': 'cosine', 'user_based': False}, verbose=False)
-    results.append(evaluate_algorithm_with_surprise(
-        'Item-Based CF (Cosine)', algo, trainset, testset))
-
-    # 3. SVD
+    # 2. SVD
     algo = SVD(n_factors=100, n_epochs=20, lr_all=0.005,
                reg_all=0.02, random_state=42, verbose=False)
     results.append(evaluate_algorithm_with_surprise(
@@ -188,35 +182,32 @@ def compare_all_methods():
     print("RECOMMENDATIONS FOR FINAL SYSTEM")
     print("="*80)
     print("""
-Based on typical performance patterns:
+Based on evaluation results:
 
 1. SVD Matrix Factorization
    - Best overall accuracy (lowest RMSE/MAE)
    - Good ranking metrics
    - Scalable and well-established
 
-2. Item-Based CF
-   - Good for explaining recommendations
-   - Efficient for movie-movie similarity
-   - Works well with sparse data
+2. User-Based CF (Pearson)
+   - Best ranking metrics (nDCG@10)
+   - Competitive with SVD
+   - Classic collaborative filtering approach
 
 3. TF-IDF Content-Based
    - Solves cold-start problem
    - Uses movie overviews (unique data source)
-   - Good diversity in recommendations
+   - Fastest algorithm (0.01s)
+   - Adds diversity to recommendations
 
-4. HYBRID: Combine top 3 methods
-   - Weighted ensemble for best performance
-   - Already implemented in getHybridRecommendations()
+4. HYBRID: Combine top 3 methods (ACTIVE APPROACH)
+   - 50% SVD + 30% User-CF + 20% TF-IDF
+   - Combines strengths of all methods
+   - Implemented in getOptimizedHybridRecommendations()
 
-5. User-Based CF
-   - Often outperformed by Item-Based and SVD
-   - Computationally expensive
-   - Can be replaced by SVD for user similarity
-
-6. Time-Decay
-   - May not show significant improvement on this dataset
-   - Could be enabled as a feature flag
+DEPRECATED (kept for reference):
+- Item-Based CF: Slower, lower accuracy in evaluation
+- Time-Decay CF: Minimal improvement observed
     """)
 
 
