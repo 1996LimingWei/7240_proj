@@ -1,7 +1,7 @@
 ## Create an environment
 
 ```
-conda create -n lab3
+conda create -n lab3 python=3.11 -y
 conda activate lab3
 
 ```
@@ -10,15 +10,20 @@ conda activate lab3
 
 ```
 pip install --upgrade setuptools wheel pyquery
-conda install -c conda-forge scikit-surprise
 pip install -r requirements.txt
 
 ```
 
+**Troubleshooting**:
+- If `pip` is not found after creating the environment, run: `python -m ensurepip --upgrade`
+
 ## Run the project
-```
-flask --app flaskr run --debug
-```
+
+flask --app flaskr run --debug --port 5001
+
+
+Then open http://127.0.0.1:5001 in your browser.
+
 
 ## Add the recommendation algorithm
 You only need to modify the `main.py` file. Its path is as follows:

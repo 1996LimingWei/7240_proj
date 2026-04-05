@@ -191,6 +191,10 @@ def getRecommendationBy(user_rates, k=12):
                 extended_matrix.loc[current_user_id,
                                     row['movieId']] = row['rating']
 
+        # Fill NaN values for the new user with 0 (unrated movies)
+        extended_matrix.loc[current_user_id] = extended_matrix.loc[current_user_id].fillna(
+            0)
+
         # Compute similarities with all users
         current_user_vector = extended_matrix.loc[current_user_id].values
         similarities = []
@@ -231,7 +235,7 @@ def getRecommendationBy(user_rates, k=12):
 
     if len(results) > 0:
         return results.to_dict('records'), "Recommended using User-Based CF (Pearson similarity)."
-    return results, "No recommendations."
+    return [], "No recommendations."
 
 
 # Modify this function
