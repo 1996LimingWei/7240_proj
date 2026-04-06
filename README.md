@@ -18,9 +18,9 @@ pip install -r requirements.txt
 - If `pip` is not found after creating the environment, run: `python -m ensurepip --upgrade`
 
 ## Run the project
-
+```
 flask --app flaskr run --debug --port 5001
-
+```
 
 Then open http://127.0.0.1:5001 in your browser.
 
