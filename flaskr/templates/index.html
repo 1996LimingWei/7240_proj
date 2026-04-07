@@ -54,6 +54,14 @@
                                     </div>
                                 </div>
                                 <div class="control">
+                                    <div class="select is-small">
+                                        <select id="uiSelect" onchange="changeUI(this.value)">
+                                            <option value="simple" {% if ui == 'simple' %}selected{% endif %}>Simple UI</option>
+                                            <option value="enhanced" {% if ui == 'enhanced' %}selected{% endif %}>Enhanced UI</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control">
                                     <button class="button is-small is-info" onclick="showAlgorithmInfo()">
                                         <span class="icon is-small"><i class="fa fa-info-circle"></i></span>
                                     </button>
@@ -75,14 +83,25 @@
             </nav>
         </div>
 
-        <template v-if="genres.length > 0 && userRates.length > 0">
+        <template v-if="genres.length > 0 || userRates.length > 0 || userLikes.length > 0">
             {% if recommendations %}
             <section class="section pt-2 pb-0">
                 <div class="container">
                     <div class="level">
                         <div class="level-left">
                             <div>
-                                <p class="is-size-4">Recommended</p>
+                                <div class="level">
+                                    <div class="level-left">
+                                        <p class="is-size-4">Recommended</p>
+                                    </div>
+                                    <div class="level-right">
+                                        {% if ui== 'simple' %}
+                                        <span class="tag is-light">Simple UI</span>
+                                        {% else %}
+                                        <span class="tag is-info">Enhanced UI</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
                                 <p class="mb-3"><span class="tag is-info">{{ recommendations_message }}</span></p>
                             </div>
                         </div>
@@ -128,7 +147,7 @@
             </section>
             {% endif %}
 
-            {% if likes_similars %}
+            {% if ui == 'enhanced' and likes_similars %}
             <section class="section pb-0">
                 <div class="container">
                     <p class="is-size-4">
@@ -170,7 +189,7 @@
             </section>
             {% endif %}
 
-            {% if likes %}
+            {% if ui == 'enhanced' and likes %}
             <section class="section pb-0">
                 <div class="container">
                     <p class="is-size-4 mb-3">
@@ -523,6 +542,16 @@
     window.changeAlgorithm = function(algorithm) {
         const url = new URL(window.location);
         url.searchParams.set('algorithm', algorithm);
+        const uiValue = document.getElementById('uiSelect')?.value || 'simple';
+        url.searchParams.set('ui', uiValue);
+        window.location.href = url.toString();
+    }
+
+    window.changeUI = function(ui) {
+        const url = new URL(window.location);
+        url.searchParams.set('ui', ui);
+        const algorithmValue = document.getElementById('algorithmSelect')?.value || 'hybrid';
+        url.searchParams.set('algorithm', algorithmValue);
         window.location.href = url.toString();
     }
 

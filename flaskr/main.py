@@ -75,8 +75,11 @@ def index():
     else:
         user_likes = []
 
-    # Get selected algorithm from query parameter
+    # Get selected algorithm and UI mode from query parameters
     algorithm = request.args.get('algorithm', 'hybrid')
+    ui = request.args.get('ui', 'simple')
+    if ui not in ['simple', 'enhanced']:
+        ui = 'simple'
 
     default_genres_movies = getMoviesByGenres(user_genres)[:10]
 
@@ -117,6 +120,7 @@ def index():
                            likes_similar_message=likes_similar_message,
                            likes=likes_movies,
                            algorithm=algorithm,
+                           ui=ui,
                            )
 
 
