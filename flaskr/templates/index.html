@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Movie Recommender System</title>
+    <title>{% if ui == 'simple' %}Movie Recommender System{% else %}Movie Recommender{% endif %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    {% if ui == 'enhanced' %}<link rel="stylesheet" href="{{ url_for('static', filename='css/recommender.css') }}">{% endif %}
 </head>
 <body>
 <div id="app">
@@ -13,9 +14,7 @@
         <section class="hero is-fullheight">
             <div class="hero-body">
                 <div class="">
-                    <p class="title">
-                        Loading...
-                    </p>
+                    <p class="title">Loading…</p>
                 </div>
             </div>
         </section>
@@ -25,7 +24,11 @@
             <nav :class="['navbar', 'is-active']" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
                     <a class="navbar-item" href="/">
+                        {% if ui == 'simple' %}
                         <span class="is-size-3">Movies Recommender System</span>
+                        {% else %}
+                        <span class="is-size-4">Movie Recommender</span>
+                        {% endif %}
                     </a>
 
                     <a role="button" :class="['navbar-burger', isActivityNavBar ? 'is-active' : '']" aria-label="menu"
@@ -38,18 +41,24 @@
                 </div>
 
                 <div id="navbarBasicExample" :class="['navbar-menu', isActivityNavBar ? 'is-active' : '']">
-                    <div class="navbar-start">
-                    </div>
+                    <div class="navbar-start"></div>
                     <div class="navbar-end">
                         <div class="navbar-item">
                             <div class="field has-addons">
                                 <div class="control">
                                     <div class="select is-small">
                                         <select id="algorithmSelect" onchange="changeAlgorithm(this.value)">
+                                            {% if ui == 'simple' %}
                                             <option value="hybrid" {% if algorithm == 'hybrid' %}selected{% endif %}>Hybrid (Optimized)</option>
                                             <option value="svd" {% if algorithm == 'svd' %}selected{% endif %}>SVD Matrix Factorization</option>
                                             <option value="user_cf" {% if algorithm == 'user_cf' %}selected{% endif %}>User-Based CF</option>
                                             <option value="tfidf" {% if algorithm == 'tfidf' %}selected{% endif %}>TF-IDF Content-Based</option>
+                                            {% else %}
+                                            <option value="hybrid" {% if algorithm == 'hybrid' %}selected{% endif %}>Hybrid (optimized)</option>
+                                            <option value="svd" {% if algorithm == 'svd' %}selected{% endif %}>SVD matrix factorization</option>
+                                            <option value="user_cf" {% if algorithm == 'user_cf' %}selected{% endif %}>User-based CF</option>
+                                            <option value="tfidf" {% if algorithm == 'tfidf' %}selected{% endif %}>TF-IDF content-based</option>
+                                            {% endif %}
                                         </select>
                                     </div>
                                 </div>
@@ -62,7 +71,7 @@
                                     </div>
                                 </div>
                                 <div class="control">
-                                    <button class="button is-small is-info" onclick="showAlgorithmInfo()">
+                                    <button type="button" class="button is-small is-info" onclick="showAlgorithmInfo()" title="About algorithms">
                                         <span class="icon is-small"><i class="fa fa-info-circle"></i></span>
                                     </button>
                                 </div>
@@ -70,10 +79,10 @@
                         </div>
                         <div class="navbar-item">
                             <div class="buttons">
-                                <button class="button is-danger is-small" @click="cleanAll">
-                                    <strong>Clean All</strong>
+                                <button type="button" class="button is-danger is-small" @click="cleanAll">
+                                    {% if ui == 'simple' %}<strong>Clean All</strong>{% else %}<strong>Reset profile</strong>{% endif %}
                                 </button>
-                                <button class="button is-link is-small" @click="showGenres = true">
+                                <button type="button" class="button is-link is-small" @click="showGenres = true">
                                     <strong>Genres</strong>
                                 </button>
                             </div>
@@ -83,7 +92,63 @@
             </nav>
         </div>
 
+        {% if ui == 'enhanced' %}
+        <section class="section recommender-onboarding py-4 mb-0">
+            <div class="container">
+                <p class="heading has-text-grey">Set up your taste</p>
+                <div class="recommender-steps">
+                    <div class="recommender-step {% if pref_stats.has_genres %}is-done{% endif %}">
+                        <div class="recommender-step-num">1</div>
+                        <div class="recommender-step-body">
+                            <p class="title is-6">Pick genres</p>
+                            <p class="is-size-7 has-text-grey">Open <strong>Genres</strong> and choose what you enjoy (multiple allowed).</p>
+                        </div>
+                    </div>
+                    <div class="recommender-step {% if pref_stats.ratings_goal_met %}is-done{% endif %}">
+                        <div class="recommender-step-num">2</div>
+                        <div class="recommender-step-body">
+                            <p class="title is-6">Rate sample movies</p>
+                            <p class="is-size-7 has-text-grey">After saving genres, rate at least {{ pref_stats.min_ratings_required }} titles with stars so collaborative models can learn from you.</p>
+                        </div>
+                    </div>
+                    <div class="recommender-step {% if pref_stats.like_count > 0 %}is-done{% endif %}">
+                        <div class="recommender-step-num">3</div>
+                        <div class="recommender-step-body">
+                            <p class="title is-6">Like favorites (optional)</p>
+                            <p class="is-size-7 has-text-grey">Use thumbs-up on recommendations or your list — likes help TF-IDF and the hybrid blend.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preference-summary">
+                    <div class="level is-mobile mb-0 is-align-items-flex-start">
+                        <div class="level-left">
+                            <div>
+                                <p class="is-size-6 has-text-weight-semibold">Your preferences</p>
+                                <p class="is-size-7 has-text-grey mb-0">Saved in this browser (cookies). Use <strong>Reset profile</strong> to clear.</p>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-light">{{ pref_stats.rating_count }} star ratings</span>
+                            <span class="tag is-light">{{ pref_stats.like_count }} likes</span>
+                        </div>
+                    </div>
+                    {% if selected_genre_names %}
+                    <div class="tags">
+                        {% for name in selected_genre_names %}
+                        <span class="tag is-info is-light">{{ name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="is-size-7 has-text-grey mt-2 mb-0">No genres saved yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
         <template v-if="genres.length > 0 || userRates.length > 0 || userLikes.length > 0">
+            {% if ui == 'simple' %}
             {% if recommendations %}
             <section class="section pt-2 pb-0">
                 <div class="container">
@@ -95,18 +160,14 @@
                                         <p class="is-size-4">Recommended</p>
                                     </div>
                                     <div class="level-right">
-                                        {% if ui== 'simple' %}
                                         <span class="tag is-light">Simple UI</span>
-                                        {% else %}
-                                        <span class="tag is-info">Enhanced UI</span>
-                                        {% endif %}
                                     </div>
                                 </div>
                                 <p class="mb-3"><span class="tag is-info">{{ recommendations_message }}</span></p>
                             </div>
                         </div>
                         <div class="level-right">
-                            <button class="button is-small" onclick="showWhyRecommended()">
+                            <button type="button" class="button is-small" onclick="showWhyRecommended()">
                                 <span class="icon"><i class="fa fa-question-circle"></i></span>
                                 <span>Why these?</span>
                             </button>
@@ -127,16 +188,15 @@
                                 <div class="card-content p-2">
                                     <div class="media">
                                         <div class="media-content">
-                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title']
-                                                }}</p>
-                                            <p style="font-size: 0.8rem">{{ movie['release_date'] }}</p>
+                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title'] }}</p>
+                                            <p style="font-size: 0.8rem">{{ movie|movie_year }}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="card-footer p-2">
-                                    <button class="button is-small" @click="updateLike({{movie['movieId']}})">
-                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']" > Like</span>
+                                    <button type="button" class="button is-small" @click="updateLike({{movie['movieId']}})">
+                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']"> Like</span>
                                     </button>
                                 </div>
                             </div>
@@ -146,13 +206,120 @@
                 </div>
             </section>
             {% endif %}
+            {% elif ui == 'enhanced' %}
+            {% if recommendation_rows %}
+            <section class="section pt-4 pb-0">
+                <div class="container">
+                    <div class="section-heading-row">
+                        <div>
+                            <h2 class="title is-4 mb-1">Recommended for you</h2>
+                            {% if algorithm == 'hybrid' %}
+                            <p class="algo-subtitle">Hybrid combines collaborative patterns with content signals.</p>
+                            {% elif algorithm == 'svd' %}
+                            <p class="algo-subtitle">Latent-factor model trained on ratings (best accuracy in offline tests).</p>
+                            {% elif algorithm == 'user_cf' %}
+                            <p class="algo-subtitle">Finds users with similar taste and surfaces their highly rated picks.</p>
+                            {% else %}
+                            <p class="algo-subtitle">Content similarity from movie overviews (great when you have likes).</p>
+                            {% endif %}
+                            <p class="mt-2"><span class="tag is-info is-light">{{ recommendations_message }}</span></p>
+                            <p class="is-size-7 has-text-grey mt-2 mb-0">Enhanced UI — extra “similar” and liked rows below. <span class="tag is-light ml-1">enhanced</span></p>
+                        </div>
+                        <div>
+                            <button type="button" class="button is-small is-outlined" onclick="showWhyRecommended()">
+                                <span class="icon"><i class="fa fa-question-circle"></i></span>
+                                <span>Why these picks?</span>
+                            </button>
+                        </div>
+                    </div>
 
-            {% if ui == 'enhanced' and likes_similars %}
+                    <div class="columns is-mobile is-multiline">
+                        {% for row in recommendation_rows %}
+                        {% set movie = row.movie %}
+                        <div class="column is-3-fullhd is-3-desktop is-3-tablet is-6-mobile">
+                            <div class="card">
+                                <div class="card-image">
+                                    <figure class="image is-4by3">
+                                        <img src="{{ movie['cover_url'] }}"
+                                             onerror="this.src='https://placehold.co/480x640?text=No+Cover';"
+                                             alt="{{ movie['title'] }} poster">
+                                    </figure>
+                                </div>
+                                <div class="card-content p-3">
+                                    <p class="movie-card-title">{{ movie['title'] }}</p>
+                                    <p class="movie-card-meta">{% if row.year_display %}{{ row.year_display }}{% endif %}</p>
+                                    {% if movie['genres'] %}
+                                    <div class="movie-genre-tags">
+                                        {% for g in movie['genres'] %}
+                                        {% if loop.index <= 5 %}
+                                        <span class="tag is-dark is-light">{{ g }}</span>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    {% if movie['overview'] %}
+                                    <p class="movie-overview">{{ movie['overview'][:160] }}{% if movie['overview']|length > 160 %}…{% endif %}</p>
+                                    {% endif %}
+                                    <div class="movie-insight">
+                                        <details>
+                                            <summary>Why this title?</summary>
+                                            <ul>
+                                                {% for bullet in row.insight_bullets %}
+                                                <li>{{ bullet }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </details>
+                                    </div>
+                                </div>
+                                <div class="card-footer p-2">
+                                    <button type="button" class="button is-small is-fullwidth" @click="updateLike({{ movie['movieId'] }})">
+                                        <span :class="['fa fa-thumbs-up', inLikes({{ movie['movieId'] }}) ? 'checked': '']"></span>
+                                        <span> Like</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+            {% else %}
+            <section class="section">
+                <div class="container">
+                    <div class="empty-recs-hint">
+                        <p class="icon"><i class="fa fa-film"></i></p>
+                        <p class="title is-5">No recommendations yet</p>
+                        {% if algorithm == 'tfidf' %}
+                        <p class="subtitle is-6">TF-IDF needs at least one <strong>liked</strong> movie. Like titles from search or switch to Hybrid / SVD / User-CF and add more star ratings.</p>
+                        {% elif algorithm in ['svd', 'user_cf'] %}
+                        <p class="subtitle is-6">Add at least <strong>{{ pref_stats.min_ratings_required }}</strong> star ratings (you have {{ pref_stats.rating_count }}). Open the rating panel after choosing genres.</p>
+                        {% else %}
+                        <p class="subtitle is-6">Add star ratings and/or likes — the hybrid uses both. If you only have one signal, add the other for richer results.</p>
+                        {% endif %}
+                        <p class="is-size-7 has-text-grey">{{ recommendations_message }}</p>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="section pt-2 pb-4">
+                <div class="container">
+                    <div class="feedback-education content">
+                        <h3 class="title is-5">How your input improves future picks</h3>
+                        <ul>
+                            <li><strong>Star ratings</strong> feed collaborative filtering and matrix factorization (SVD), so the system learns which movies match your taste in the same way as other users.</li>
+                            <li><strong>Likes</strong> strengthen TF-IDF content similarity — useful for cold start and for the hybrid blend that mixes ratings with overview text.</li>
+                            <li><strong>Genres</strong> narrow exploration and appear in “why” hints when a recommendation shares genres you selected.</li>
+                            <li>Everything is stored in <strong>browser cookies</strong> for this demo. Refresh the page after changing ratings or likes to reload recommendations. <strong>Reset profile</strong> clears cookies and starts fresh.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            {% if likes_similars %}
             <section class="section pb-0">
                 <div class="container">
-                    <p class="is-size-4">
-                        Liked with Similar Items
-                    </p>
+                    <h2 class="title is-4">Similar to what you liked</h2>
                     <p class="mb-3">{{ likes_similar_message }}</p>
 
                     <div class="columns is-mobile is-multiline">
@@ -163,22 +330,25 @@
                                     <figure class="image is-3by4">
                                         <img src="{{ movie['cover_url'] }}"
                                              onerror="this.src='https://placehold.co/480x640?text=No+Cover';"
-                                             alt="">
+                                             alt="{{ movie['title'] }} poster">
                                     </figure>
                                 </div>
                                 <div class="card-content p-2">
-                                    <div class="media">
-                                        <div class="media-content">
-                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title']
-                                                }}</p>
-                                            <p style="font-size: 0.8rem">{{ movie['release_date'] }}</p>
-                                        </div>
+                                    <p class="movie-card-title">{{ movie['title'] }}</p>
+                                    <p class="movie-card-meta">{{ movie|movie_year }}</p>
+                                    {% if movie['genres'] %}
+                                    <div class="movie-genre-tags">
+                                        {% for g in movie['genres'] %}
+                                        {% if loop.index <= 4 %}
+                                        <span class="tag is-dark is-light">{{ g }}</span>
+                                        {% endif %}
+                                        {% endfor %}
                                     </div>
+                                    {% endif %}
                                 </div>
-
                                 <div class="card-footer p-2">
-                                    <button class="button is-small" @click="updateLike({{movie['movieId']}})">
-                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']" > Like</span>
+                                    <button type="button" class="button is-small is-fullwidth" @click="updateLike({{movie['movieId']}})">
+                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']"></span> Like
                                     </button>
                                 </div>
                             </div>
@@ -189,14 +359,15 @@
             </section>
             {% endif %}
 
-            {% if ui == 'enhanced' and likes %}
+            {% if likes %}
             <section class="section pb-0">
                 <div class="container">
-                    <p class="is-size-4 mb-3">
-                        Liked <button class="button" @click="reloadPage"><i class="fa fa-refresh mr-3" aria-hidden="true"></i>Refresh</button>
-                    </p>
+                    <h2 class="title is-4">
+                        Your likes
+                        <button type="button" class="button is-small is-light ml-2" @click="reloadPage"><i class="fa fa-refresh mr-2" aria-hidden="true"></i>Refresh</button>
+                    </h2>
 
-                    <div class="columns is-mobile pb-3" style="overflow: scroll">
+                    <div class="columns is-mobile pb-3" style="overflow-x: auto; flex-wrap: nowrap;">
                         {% for movie in likes %}
                         <div class="column is-2-fullhd is-2-desktop is-2-tablet is-6-mobile">
                             <div class="card">
@@ -204,22 +375,16 @@
                                     <figure class="image is-3by4">
                                         <img src="{{ movie['cover_url'] }}"
                                              onerror="this.src='https://placehold.co/480x640?text=No+Cover';"
-                                             alt="">
+                                             alt="{{ movie['title'] }} poster">
                                     </figure>
                                 </div>
                                 <div class="card-content p-2">
-                                    <div class="media">
-                                        <div class="media-content">
-                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title']
-                                                }}</p>
-                                            <p style="font-size: 0.8rem">{{ movie['release_date'] }}</p>
-                                        </div>
-                                    </div>
+                                    <p class="movie-card-title">{{ movie['title'] }}</p>
+                                    <p class="movie-card-meta">{{ movie|movie_year }}</p>
                                 </div>
-
                                 <div class="card-footer p-2">
-                                    <button class="button is-small" @click="updateLike({{movie['movieId']}})">
-                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']" > Like</span>
+                                    <button type="button" class="button is-small is-fullwidth" @click="updateLike({{movie['movieId']}})">
+                                        <span :class="['fa fa-thumbs-up', inLikes({{movie['movieId']}}) ? 'checked': '']"></span> Like
                                     </button>
                                 </div>
                             </div>
@@ -229,37 +394,70 @@
                 </div>
             </section>
             {% endif %}
+            {% endif %}
+        </template>
+
+        <template v-else>
+            {% if ui == 'enhanced' %}
+            <section class="section">
+                <div class="container">
+                    <div class="notification is-info is-light">
+                        <p class="title is-5">Welcome</p>
+                        <p class="mb-0">Tap <strong>Genres</strong> in the bar above to choose what you like. We will then ask you to rate a sample of movies so recommendations can start.</p>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
         </template>
 
         <div :class="['modal', showGenres ? 'is-active' : '']">
-            <div class="modal-background"></div>
+            <div class="modal-background" @click="showGenres = false"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
+                    {% if ui == 'simple' %}
                     <p class="modal-card-title">Please choose any genre you're interested in.</p>
+                    {% else %}
+                    <p class="modal-card-title">Choose genres you enjoy</p>
+                    {% endif %}
+                    <button type="button" class="delete" @click="showGenres = false" aria-label="close"></button>
                 </header>
                 <div class="modal-card-body">
+                    {% if ui == 'enhanced' %}
+                    <p class="mb-3">You can select multiple genres. Selected: <strong>[[ genres.length ]]</strong></p>
+                    {% else %}
                     <p class="mb-3">Multiple answers are possible.</p>
+                    {% endif %}
                     {% for gener in genres %}
-                    <button :class="['button m-2', inGenres({{gener['id']}}) ? 'is-link' : '' ]" value="{{gener['id']}}"
+                    <button type="button" :class="['button m-2', inGenres({{gener['id']}}) ? 'is-link' : '' ]" value="{{gener['id']}}"
                             @click="updateGenre({{gener['id']}})">
                         {{gener['name']}}
                     </button>
                     {% endfor %}
                 </div>
                 <footer class="modal-card-foot">
-                    <button class="button is-link" :disabled="genres.length == 0" @click="saveGenres">Save
-                    </button>
+                    <button type="button" class="button is-link" :disabled="genres.length == 0" @click="saveGenres">{% if ui == 'simple' %}Save{% else %}Save genres{% endif %}</button>
                 </footer>
             </div>
         </div>
 
         <div :class="['modal', showMovieRate ? 'is-active' : '']">
-            <div class="modal-background"></div>
+            <div class="modal-background" @click="showMovieRate = false"></div>
             <div class="modal-card" style="max-width: 1000px">
                 <header class="modal-card-head">
+                    {% if ui == 'simple' %}
                     <p class="modal-card-title"></p>
+                    {% else %}
+                    <p class="modal-card-title">Rate sample movies <span class="tag is-info is-light ml-2">[[ userRates.length ]] / [[ minRatingsRequired ]] stars saved</span></p>
+                    {% endif %}
+                    <button type="button" class="delete" @click="showMovieRate = false" aria-label="close"></button>
                 </header>
                 <div class="modal-card-body">
+                    {% if ui == 'enhanced' %}
+                    <div class="rating-progress">
+                        <p class="is-size-7 mb-1 has-text-grey">Rate at least [[ minRatingsRequired ]] movies to unlock recommendations for rating-based algorithms. Current: [[ userRates.length ]].</p>
+                        <progress class="progress is-link" :value="Math.min(userRates.length, minRatingsRequired)" :max="minRatingsRequired"></progress>
+                    </div>
+                    {% endif %}
                     <div class="columns is-mobile is-multiline">
                         {% for movie in default_genres_movies %}
                         <div class="column is-3-fullhd is-3-desktop is-3-tablet is-6-mobile">
@@ -267,21 +465,24 @@
                                 <div class="card-image">
                                     <figure class="image is-3by4">
                                         <img src="{{ movie['cover_url'] }}"
-                                             onerror="this.src='https://placehold.co/480x640?text=No+Cover';" alt="">
+                                             onerror="this.src='https://placehold.co/480x640?text=No+Cover';" alt="{{ movie['title'] }} poster">
                                     </figure>
                                 </div>
                                 <div class="card-content p-2">
+                                    {% if ui == 'simple' %}
                                     <div class="media">
                                         <div class="media-content">
-                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title']
-                                                }}</p>
-                                            <p style="font-size: 0.8rem">{{ movie['release_date'] }}</p>
+                                            <p style="font-size: 0.8rem; font-weight: bold">{{ movie['title'] }}</p>
+                                            <p style="font-size: 0.8rem">{{ movie|movie_year }}</p>
                                         </div>
                                     </div>
+                                    {% else %}
+                                    <p class="movie-card-title">{{ movie['title'] }}</p>
+                                    <p class="movie-card-meta">{{ movie|movie_year }}</p>
+                                    {% endif %}
                                 </div>
-
                                 <div class="card-footer p-2">
-                                    <template v-for="rate in [1, 2, 3, 4, 5]">
+                                    <template v-for="rate in [1, 2, 3, 4, 5]" :key="rate">
                                         <span :class="['fa fa-star px-1 star', getRate({{movie['movieId']}})[1] >= rate ? 'checked': '']"
                                               @click="updateRate({{movie['movieId']}}, rate)"></span>
                                     </template>
@@ -292,23 +493,22 @@
                     </div>
                 </div>
                 <footer class="modal-card-foot">
-                    <button class="button is-link" :disabled="userRates.length < 10"
-                            @click="showMovieRate = false; reloadPage()">Save
-                    </button>
+                    <button type="button" class="button is-link" :disabled="userRates.length < minRatingsRequired"
+                            @click="showMovieRate = false; reloadPage()">{% if ui == 'simple' %}Save{% else %}Save and reload{% endif %}</button>
                 </footer>
             </div>
         </div>
 
-        <!-- Algorithm Info Modal -->
         <div id="algorithmInfoModal" class="modal">
             <div class="modal-background" onclick="closeAlgorithmInfo()"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
-                    <p class="modal-card-title">Recommendation Algorithms</p>
-                    <button class="delete" onclick="closeAlgorithmInfo()"></button>
+                    <p class="modal-card-title">{% if ui == 'simple' %}Recommendation Algorithms{% else %}Recommendation approaches{% endif %}</p>
+                    <button type="button" class="delete" onclick="closeAlgorithmInfo()" aria-label="close"></button>
                 </header>
                 <section class="modal-card-body">
                     <div class="content">
+                        {% if ui == 'simple' %}
                         <h5>Available Algorithms (Optimized)</h5>
                         <p><em>Based on offline evaluation (MAE, RMSE, Precision@K, nDCG)</em></p>
                         <ul>
@@ -333,55 +533,96 @@
                             <li>Offline Evaluation Metrics (MAE, RMSE, Precision@K, Recall@K, nDCG)</li>
                         </ul>
                         <p><small><em>Note: Item-Based CF and Time-Decay were removed after evaluation showed lower performance.</em></small></p>
+                        {% else %}
+                        <h5>Available models (offline evaluation)</h5>
+                        <p><em>Metrics used: MAE, RMSE, Precision@K, nDCG@K</em></p>
+                        <ul>
+                            <li><strong>Hybrid (optimized):</strong> Combines SVD (50%) + user-based CF (30%) + TF-IDF (20%).</li>
+                            <li><strong>SVD matrix factorization:</strong> Strong accuracy (MAE ≈ 0.68, RMSE ≈ 0.88).</li>
+                            <li><strong>User-based CF:</strong> Pearson similarity over users; strong ranking metrics.</li>
+                            <li><strong>TF-IDF content-based:</strong> Very fast; uses movie overviews for similarity.</li>
+                        </ul>
+                        <h5>How to choose in the UI</h5>
+                        <ul>
+                            <li>Use <strong>Hybrid</strong> for the default balance.</li>
+                            <li>Use <strong>TF-IDF</strong> when you mainly have likes, not many ratings.</li>
+                            <li>Use <strong>SVD</strong> or <strong>User-CF</strong> when you have enough star ratings.</li>
+                        </ul>
+                        <p><small><em>Item-based CF and time-decay variants were dropped after evaluation.</em></small></p>
+                        {% endif %}
                     </div>
                 </section>
             </div>
         </div>
 
-        <!-- Why Recommended Modal -->
         <div id="whyRecommendedModal" class="modal">
             <div class="modal-background" onclick="closeWhyRecommended()"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
-                    <p class="modal-card-title">Why These Recommendations?</p>
-                    <button class="delete" onclick="closeWhyRecommended()"></button>
+                    <p class="modal-card-title">Why these recommendations?</p>
+                    <button type="button" class="delete" onclick="closeWhyRecommended()" aria-label="close"></button>
                 </header>
                 <section class="modal-card-body">
                     <div class="content">
-                        <p>Current algorithm: <strong>{{ algorithm.replace('_', ' ').title() }}</strong></p>
+                        <p>{% if ui == 'simple' %}Current algorithm:{% else %}Active model:{% endif %} <strong>{{ algorithm.replace('_', ' ').title() }}</strong></p>
                         <hr>
                         {% if algorithm == 'hybrid' %}
-                        <p><strong>Optimized Hybrid Model</strong> (Based on Evaluation Results):</p>
+                        <p><strong>{% if ui == 'simple' %}Optimized Hybrid Model{% else %}Optimized hybrid{% endif %}</strong>{% if ui == 'simple' %} (Based on Evaluation Results):{% endif %}</p>
                         <ul>
-                            <li><strong>50% SVD</strong> - Best accuracy (MAE: 0.68, RMSE: 0.88)</li>
-                            <li><strong>30% User-Based CF</strong> - Best ranking metrics (nDCG@10: 0.76)</li>
-                            <li><strong>20% TF-IDF</strong> - Fastest, uses movie overviews</li>
+                            <li><strong>50% SVD</strong>{% if ui == 'simple' %} - Best accuracy (MAE: 0.68, RMSE: 0.88){% else %} — latent factors from your ratings.{% endif %}</li>
+                            <li><strong>30% User-Based CF</strong>{% if ui == 'simple' %} - Best ranking metrics (nDCG@10: 0.76){% else %} — neighbors with similar stars.{% endif %}</li>
+                            <li><strong>20% TF-IDF</strong>{% if ui == 'simple' %} - Fastest, uses movie overviews{% else %} — overview text vs. movies you liked.{% endif %}</li>
                         </ul>
+                        {% if ui == 'simple' %}
                         <p><em>This combination was selected after testing all algorithms on MAE, RMSE, Precision@K, Recall@K, and nDCG metrics.</em></p>
+                        {% else %}
+                        <p><em>Blended scores are ranked; each card’s “Why this title?” adds genre overlap hints.</em></p>
+                        {% endif %}
                         {% elif algorithm == 'user_cf' %}
                         <p><strong>User-Based Collaborative Filtering</strong> (k-NN with Pearson):</p>
                         <ol>
+                            {% if ui == 'simple' %}
                             <li>Finding users with similar rating patterns (Pearson correlation)</li>
                             <li>Identifying movies those similar users rated highly</li>
                             <li>Recommending those movies to you</li>
+                            {% else %}
+                            <li>Find users whose ratings align with yours.</li>
+                            <li>Promote movies they rated highly that you have not seen.</li>
+                            {% endif %}
                         </ol>
+                        {% if ui == 'simple' %}
                         <p><em>Evaluation: MAE=0.70, RMSE=0.91, nDCG@10=0.76</em></p>
+                        {% endif %}
                         {% elif algorithm == 'svd' %}
-                        <p><strong>SVD Matrix Factorization</strong> (Best Accuracy):</p>
+                        <p><strong>SVD Matrix Factorization</strong>{% if ui == 'simple' %} (Best Accuracy):{% endif %}</p>
                         <ol>
+                            {% if ui == 'simple' %}
                             <li>Learning latent factors for users and movies</li>
                             <li>Decomposing the rating matrix into lower-dimensional representations</li>
                             <li>Predicting ratings as dot product of user and item factors</li>
+                            {% else %}
+                            <li>Compress the rating matrix into latent factors.</li>
+                            <li>Predict preference as a dot product in that space.</li>
+                            {% endif %}
                         </ol>
+                        {% if ui == 'simple' %}
                         <p><em>Evaluation: MAE=0.68, RMSE=0.88, Precision@10=0.50 (Best Overall)</em></p>
+                        {% endif %}
                         {% elif algorithm == 'tfidf' %}
                         <p><strong>TF-IDF Content-Based</strong> (Fastest & Cold-Start Solution):</p>
                         <ol>
+                            {% if ui == 'simple' %}
                             <li>Extracting TF-IDF features from movie overviews</li>
                             <li>Calculating cosine similarity between movie contents</li>
                             <li>Recommending movies most similar to ones you liked</li>
+                            {% else %}
+                            <li>Vectorize overviews, aggregate vectors for movies you liked.</li>
+                            <li>Recommend unseen movies with closest overview similarity.</li>
+                            {% endif %}
                         </ol>
+                        {% if ui == 'simple' %}
                         <p><em>Speed: 0.01s - Solves cold-start by using movie content</em></p>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </section>
@@ -392,12 +633,12 @@
             <div class="container is-max-widescreen">
                 <div class="content has-text-centered">
                     <p>
-                        Copyright © 2026 <a href="https://hci.comp.hkbu.edu.hk" target="_blank"><strong>PI Lab</strong></a>. All Rights Reserved.
+                        Copyright © 2026 <a href="https://hci.comp.hkbu.edu.hk" target="_blank" rel="noopener"><strong>PI Lab</strong></a>. All rights reserved.
                     </p>
-                    <a href="https://www.comp.hkbu.edu.hk" target="_blank"><img src="/static/img/comp-logo.png"
-                                                                                alt="logo"
+                    <a href="https://www.comp.hkbu.edu.hk" target="_blank" rel="noopener"><img src="/static/img/comp-logo.png"
+                                                                                alt="HKBU Computer Science"
                                                                                 style="height: 30px; margin-right: 20px"></a>
-                    <a href="https://hkbu.edu.hk" target="_blank"><img src="/static/img/bu-logo.png" alt="logo"
+                    <a href="https://hkbu.edu.hk" target="_blank" rel="noopener"><img src="/static/img/bu-logo.png" alt="HKBU"
                                                                        style="height: 30px;"></a>
 
                 </div>
@@ -413,8 +654,8 @@
         setup() {
             const isLoading = ref(true)
             const isActivityNavBar = ref(false)
+            const minRatingsRequired = 10
 
-            // ==== Vue default operations ====
             onMounted(() => {
                 isLoading.value = false
 
@@ -423,7 +664,7 @@
             })
 
             function cleanAll() {
-                if (confirm("Are you sure to delete all records?")) {
+                if (confirm("{% if ui == 'simple' %}Are you sure to delete all records?{% else %}Clear all genres, ratings, and likes stored in this browser? Recommendations will reset.{% endif %}")) {
                     document.cookie = "user_genres=; Max-Age=0";
                     document.cookie = "user_rates=; Max-Age=0";
                     document.cookie = "user_likes=; Max-Age=0";
@@ -431,9 +672,8 @@
                 }
             }
 
-            // ==== Genre Operation ====
             const showGenres = ref(false)
-            const genres = ref({{user_genres | tojson}}) // If this place shows error, please check the format: ref({{user_genres | tojson}})
+            const genres = ref({{user_genres | tojson}})
 
             function updateGenre(_id) {
                 let id = _id.toString()
@@ -458,9 +698,8 @@
                 reloadPage()
             }
 
-            // ==== Movie Rate Operation ====
             const showMovieRate = ref(false)
-            const userRates = ref({{user_rates | tojson}}) // If this place shows error, please check the format: ref({{user_rates | tojson}})
+            const userRates = ref({{user_rates | tojson}})
 
             function getRate(movieId) {
                 for (let index in userRates.value) {
@@ -474,7 +713,7 @@
             }
 
             function updateRate(movieId, rate) {
-                let record = '611' + '|' + movieId + '|' + rate + '|' + '0' //  total 610 users, so the new user id is 944
+                let record = '611' + '|' + movieId + '|' + rate + '|' + '0'
 
                 const index = getRate(movieId)[0];
                 if (index > -1) {
@@ -484,8 +723,8 @@
                 }
                 document.cookie = "user_rates=" + userRates.value;
             }
-            // ==== Movie Like Operation ====
-            const userLikes = ref({{user_likes | tojson}}) // If this place shows error, please check the format: ref({{user_likes | tojson}})
+
+            const userLikes = ref({{user_likes | tojson}})
 
             function updateLike(_movieId) {
                 let movieId = _movieId.toString()
@@ -504,7 +743,6 @@
                 return userLikes.value.includes(movieId.toString())
             }
 
-
             function reloadPage() {
                 location.reload();
             }
@@ -513,6 +751,7 @@
                 isLoading,
                 isActivityNavBar,
                 cleanAll,
+                minRatingsRequired,
 
                 showGenres,
                 genres,
@@ -534,11 +773,9 @@
         }
     })
 
-    // Reset the Vue delimiters and Mount it
     app.config.compilerOptions.delimiters = ['[[', ']]']
     app.mount('#app')
 
-    // Algorithm selection and modal functions
     window.changeAlgorithm = function(algorithm) {
         const url = new URL(window.location);
         url.searchParams.set('algorithm', algorithm);
@@ -571,7 +808,6 @@
         document.getElementById('whyRecommendedModal').classList.remove('is-active');
     }
 
-    // Close modals with Escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             window.closeAlgorithmInfo();
@@ -604,7 +840,7 @@
     }
 
     .checked {
-        color: red;
+        color: #e53935;
     }
 
     .star {

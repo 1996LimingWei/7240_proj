@@ -3,7 +3,6 @@ import os
 import urllib.request as urllib2
 
 from flask import current_app
-from pyquery import PyQuery as pq
 import urllib.parse as urlParse
 import re
 import pandas as pd
@@ -24,6 +23,11 @@ def scrape_api(url):
 
 
 def get_movie_png(movie_name):
+    try:
+        from pyquery import PyQuery as pq
+    except ImportError:
+        return None
+
     search_url = f"https://www.imdb.com/find/?q={urlParse.quote(movie_name)}&exact=true"
     response = scrape_api(search_url)
     if response is None:

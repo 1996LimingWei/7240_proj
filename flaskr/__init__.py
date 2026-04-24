@@ -31,4 +31,6 @@ def create_app(test_config=None):
     from . import main
     app.register_blueprint(main.bp)
 
+    app.jinja_env.filters['movie_year'] = main._movie_year_display
+
     return app

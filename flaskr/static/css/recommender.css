@@ -1,0 +1,167 @@
+/* Movie recommender UI — complements Bulma */
+
+.recommender-onboarding {
+  background: linear-gradient(180deg, #f5f7fa 0%, #fff 100%);
+  border-bottom: 1px solid #edf0f3;
+}
+
+.recommender-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.recommender-step {
+  flex: 1 1 200px;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.recommender-step-num {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: #3273dc;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recommender-step.is-done .recommender-step-num {
+  background: #48c774;
+}
+
+.recommender-step-body .title.is-6 {
+  margin-bottom: 0.25rem;
+}
+
+.preference-summary {
+  background: #fff;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.preference-summary .tags {
+  margin-top: 0.5rem;
+}
+
+.movie-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.movie-card-meta {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.movie-genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.movie-genre-tags .tag {
+  font-size: 0.65rem;
+}
+
+.movie-overview {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #4b5563;
+  max-height: 3.6em;
+  overflow: hidden;
+}
+
+.movie-insight details {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.movie-insight summary {
+  cursor: pointer;
+  color: #3273dc;
+  font-weight: 600;
+}
+
+.movie-insight ul {
+  margin: 0.5rem 0 0 1rem;
+  list-style: disc;
+}
+
+.feedback-education {
+  background: #fafbfc;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.feedback-education h3 {
+  margin-bottom: 0.75rem;
+}
+
+.feedback-education ul {
+  margin-left: 1.25rem;
+}
+
+.feedback-education li {
+  margin-bottom: 0.5rem;
+}
+
+.empty-recs-hint {
+  padding: 2rem 1rem;
+  text-align: center;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.empty-recs-hint .icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #b5b5b5;
+}
+
+.section-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.algo-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.rating-progress {
+  margin-bottom: 1rem;
+}
+
+.rating-progress progress {
+  vertical-align: middle;
+}
+
+.modal-card-title .tag {
+  vertical-align: middle;
+}
+
+.navbar-brand .navbar-item {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

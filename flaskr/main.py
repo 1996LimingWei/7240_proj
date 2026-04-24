@@ -25,12 +25,7 @@ from flask import (
 
 from .tools.data_tool import *
 
-from surprise import Reader, SVD, accuracy
-from surprise import KNNBasic, KNNWithMeans
-from surprise import Dataset
-from surprise.model_selection import train_test_split
-SURPRISE_AVAILABLE = True
-
+# Recommendation code uses sklearn (TruncatedSVD, etc.), not the surprise package.
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
@@ -54,6 +49,76 @@ user_item_matrix = user_item_matrix.replace([np.inf, -np.inf], 0).fillna(0)
 user_ids = user_item_matrix.index.tolist()
 movie_ids = user_item_matrix.columns.tolist()
 user_item_np = user_item_matrix.values
+
+
+def _genre_names_for_ids(genre_id_strings, genres_df):
+    """Map cookie genre id strings to display names (UI helper, not scoring)."""
+    if not genre_id_strings:
+        return []
+    ids = []
+    for g in genre_id_strings:
+        try:
+            ids.append(int(g))
+        except (ValueError, TypeError):
+            continue
+    if not ids:
+        return []
+    mask = genres_df['id'].isin(ids)
+    return genres_df.loc[mask, 'name'].tolist()
+
+
+def _movie_year_display(movie):
+    """Prefer numeric year from dataset for display."""
+    y = movie.get('year')
+    if y is not None:
+        try:
+            if isinstance(y, float) and np.isnan(y):
+                return ''
+            return str(int(float(y)))
+        except (ValueError, TypeError):
+            pass
+    rd = movie.get('release_date')
+    return str(rd) if rd not in (None, '') else ''
+
+
+def _build_recommendation_rows(movies_list, selected_genre_names, algorithm):
+    """Per-movie explanation bullets (genre overlap + static algorithm line)."""
+    rows = []
+    static_lines = {
+        'hybrid': 'Ranked by the hybrid model (collaborative patterns + content signals).',
+        'svd': 'Driven mainly by latent factors inferred from your star ratings.',
+        'user_cf': 'Driven by users whose ratings look similar to yours.',
+        'tfidf': 'Driven by text similarity between movie overviews and titles you liked.',
+    }
+    algo_line = static_lines.get(algorithm, static_lines['hybrid'])
+    sel_set = set(selected_genre_names)
+
+    for m in movies_list:
+        movie_genres = m.get('genres') or []
+        if isinstance(movie_genres, str):
+            movie_genres = [x.strip() for x in movie_genres.split('|') if x.strip()]
+        overlap = sorted(sel_set & set(movie_genres))
+        bullets = []
+        if overlap:
+            shown = ', '.join(overlap[:6])
+            if len(overlap) > 6:
+                shown += '…'
+            bullets.append('Matches your selected genres: ' + shown)
+        else:
+            if selected_genre_names:
+                bullets.append(
+                    'No overlap with your current genre picks — this title still fits the active model using your ratings, likes, or latent factors.')
+            else:
+                bullets.append(
+                    'Pick genres in “Genres” to see overlap-based hints alongside model-based picks.')
+        bullets.append(algo_line)
+        rows.append({
+            'movie': m,
+            'year_display': _movie_year_display(m),
+            'insight_bullets': bullets,
+            'overlap_genres': overlap,
+        })
+    return rows
 
 
 @bp.route('/', methods=('GET', 'POST'))
@@ -108,9 +173,27 @@ def index():
         [int(numeric_string) for numeric_string in user_likes])
     likes_movies = getUserLikesBy(user_likes)
 
+    selected_genre_names = _genre_names_for_ids(user_genres, genres)
+    rating_count = len(user_rates)
+    like_count = len(user_likes)
+    min_ratings_required = 10
+    pref_stats = {
+        'rating_count': rating_count,
+        'like_count': like_count,
+        'genre_count': len(user_genres),
+        'min_ratings_required': min_ratings_required,
+        'has_genres': len(user_genres) > 0,
+        'ratings_goal_met': rating_count >= min_ratings_required,
+    }
+    recommendation_rows = _build_recommendation_rows(
+        recommendations_movies, selected_genre_names, algorithm)
+
     return render_template('index.html',
                            genres=default_genres,
                            user_genres=user_genres,
+                           selected_genre_names=selected_genre_names,
+                           pref_stats=pref_stats,
+                           recommendation_rows=recommendation_rows,
                            user_rates=user_rates,
                            user_likes=user_likes,
                            default_genres_movies=default_genres_movies,
