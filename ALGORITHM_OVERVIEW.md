@@ -104,20 +104,6 @@
 
 ---
 
-## Deprecated Algorithms (Evaluation Results)
-
-### Item-Based Collaborative Filtering
-- **Status**: Commented out (lines 335-390 in `main.py`)
-- **Reason**: Slow (2.67s), lower accuracy (MAE=0.78, RMSE=1.00)
-- **Kept for**: Reference and educational purposes
-
-### Time-Decay Weighted CF
-- **Status**: Commented out (lines 437-498 in `main.py`)
-- **Reason**: Minimal improvement in evaluation
-- **Kept for**: Demonstrates temporal dynamics concept from course
-
----
-
 ## Performance Comparison: Before vs After Enhancement
 
 ### Data Utilization
