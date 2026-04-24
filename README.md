@@ -6,7 +6,7 @@ conda activate lab3
 
 ```
 
-## Install Python packages 
+## Install Python packages
 
 ```
 pip install --upgrade setuptools wheel pyquery
@@ -16,6 +16,7 @@ pip install -r requirements.txt
 
 **Troubleshooting**:
 - If `pip` is not found after creating the environment, run: `python -m ensurepip --upgrade`
+- If you get `ModuleNotFoundError: No module named 'pkg_resources'`, run: `pip install setuptools==68.2.2`
 
 ## Run the project
 ```
