@@ -45,7 +45,8 @@
   4. For each unrated movie: calculates weighted average of neighbor ratings
   5. Sorts by predicted rating → recommends top 12
 - **Example**: If users A, B, C rated similar movies highly as you, and they all loved "Inception", it will be recommended
-- **Performance**: MAE=0.70, RMSE=0.91, nDCG@10=0.76
+- **Performance**: MAE=0.6984, RMSE=0.9102, nDCG@10=0.7587
+- **Speed**: 0.47s
 - **Why chosen**: Best ranking metrics, competitive with SVD
 
 ### 2. **SVD Matrix Factorization**
@@ -60,7 +61,8 @@
   4. For current user: predicts rating = dot product of their factor vector with each movie's factor vector
   5. Recommends top 12 highest predicted ratings
 - **Example**: If you rate sci-fi movies highly, your latent factors will have high values for "sci-fi" dimensions, matching you with similar movies
-- **Performance**: MAE=0.68, RMSE=0.88, Precision@10=0.50
+- **Performance**: MAE=0.6813, RMSE=0.8825, Precision@10=0.4953
+- **Speed**: 0.44s
 - **Why chosen**: **Best overall accuracy**, lowest prediction error
 
 ### 3. **TF-IDF Content-Based Filtering**
@@ -83,7 +85,7 @@
   - Leverages movie overviews (unique data source from dataset)
   - Adds diversity to recommendations
 
-### 4. **Optimized Hybrid Model** (Default)
+### 4. **Optimized Hybrid Model**
 - **Implementation**: `flaskr/main.py` 
 - **Method**: Weighted ensemble combining top 3 algorithms
 - **Workflow**:
@@ -136,13 +138,13 @@
 
 ### Actual Performance Numbers
 
-| Metric | Original Best | Enhanced Best | Winner |
-|--------|---------------|---------------|---------|
-| **MAE** | Not measured | 0.68 (SVD) | SVD |
-| **RMSE** | Not measured | 0.88 (SVD) | SVD |
-| **nDCG@10** | Not measured | 0.76 (User-CF) | User-CF |
-| **Speed** | Unknown | 0.01s (TF-IDF) | TF-IDF |
-| **Accuracy** | Basic KNN | Hybrid (50/30/20) | Hybrid |
+| Metric | Enhanced Best | Actual Value | Winner |
+|--------|---------------|--------------|---------|
+| **MAE** | 0.6813 (SVD) | 0.6813 | SVD |
+| **RMSE** | 0.8825 (SVD) | 0.8825 | SVD |
+| **nDCG@10** | 0.7587 (User-CF) | 0.7587 | User-CF |
+| **Speed** | 0.44s (SVD) | 0.44s | SVD |
+| **Precision@10** | 0.4953 (SVD) | 0.4953 | SVD |
 
 ### Key Improvements
 
@@ -260,14 +262,3 @@ flask --app flaskr run --port 5001
 # Open browser
 http://127.0.0.1:5001
 ```
-
-**Try This Workflow**:
-1. Select 3-4 genres you like
-2. Rate at least 10 movies (be honest!)
-3. Check default Hybrid recommendations
-4. Switch to SVD only - notice differences?
-5. Try User-Based CF - different again?
-6. Click "Why these?" on each to understand the logic
-7. Like a few movies → see how recommendations adapt
-
-Use the algorithm dropdown to switch between methods and compare results!
