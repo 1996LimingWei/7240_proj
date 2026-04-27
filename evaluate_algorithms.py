@@ -112,9 +112,16 @@ def evaluate_custom_algorithm_with_metrics(algo_name, algo_func, train_ratings, 
                 rating = item['rating']  # Keep rating as-is (float)
                 user_rates.append(f"{uid}|{mid}|{rating}")
 
-            # Get recommendations
+            # Get recommendations and normalize them to ranked movie IDs
             recs, _ = algo_func(user_rates, k=20)
-            all_recommendations[int(float(user_id))] = list(recs)
+            normalized_recs = []
+            for rec in recs:
+                if isinstance(rec, dict) and 'movieId' in rec:
+                    normalized_recs.append(int(rec['movieId']))
+                elif isinstance(rec, (int, np.integer)):
+                    normalized_recs.append(int(rec))
+
+            all_recommendations[int(float(user_id))] = normalized_recs
         except Exception as e:
             print(f"  Warning: Error for user {user_id}: {e}")
             continue
