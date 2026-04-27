@@ -258,7 +258,7 @@
                                     </div>
                                     {% endif %}
                                     {% if movie['overview'] %}
-                                    <p class="movie-overview">{{ movie['overview'][:160] }}{% if movie['overview']|length > 160 %}…{% endif %}</p>
+                                    <p class="movie-overview">{{ movie['overview'] }}</p>
                                     {% endif %}
                                     <div class="movie-insight">
                                         <details>

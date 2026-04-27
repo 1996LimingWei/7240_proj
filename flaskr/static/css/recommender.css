@@ -81,8 +81,8 @@
   font-size: 0.75rem;
   line-height: 1.45;
   color: #4b5563;
-  max-height: 3.6em;
-  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .movie-insight details {
